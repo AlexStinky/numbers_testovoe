@@ -1,6 +1,8 @@
-const { checker } = require('../services/checker');
+import { Request, Response, NextFunction } from "express";
 
-const validate = async (req, res, next) => {
+import checker from '../services/checker';
+
+export const validate = async (req: Request, res: Response, next: NextFunction) => {
     const { body } = req;
 
     let response = {
@@ -17,8 +19,4 @@ const validate = async (req, res, next) => {
     }
 
     res.send(response);
-}
-
-module.exports = {
-    validate
 }

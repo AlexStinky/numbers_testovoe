@@ -1,12 +1,17 @@
-require('dotenv').config();
+import express from 'express';
+import dotenv from 'dotenv';
 
-const express = require('express'),
-    app = express();
+import { Request, Response } from "express";
 
-const middlewares = require('./scripts/middlewares');
+dotenv.config();
 
-const { db } = require('./services/db');
-const { queue } = require('./services/queue');
+const app = express();
+
+import * as middlewares from './scripts/middlewares';
+import db from './services/db';
+import queue from './services/queue';
+
+import { IData, IKeys } from './types/request';
 
 const MILLION = 1000000;
 
@@ -15,9 +20,9 @@ app.set('port', process.env.PORT);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.get('/output', async (req, res) => {
+app.get('/output', async (req: Request, res: Response) => {
     const { ticket } = req.query;
-    const data = await db.get(ticket);
+    const data = await db.get(ticket as string);
 
     if (data) {
         const response = (data.inProgress) ?
@@ -28,17 +33,17 @@ app.get('/output', async (req, res) => {
 
         res.status(200).send(response);
     } else {
-        res.status(400).send('Failed');
+        res.status(400).send('Not found');
     }
 });
 
-app.get('/inprogress', async (req, res) => {
-    const keys = await db.getAll();
+app.get('/inprogress', async (req: Request, res: Response) => {
+    const keys: IKeys = await db.getAll();
 
     let list = '';
 
-    for (let i = 0; i < keys.length; i++) {
-        const data = await db.get(keys[i]);
+    for (let i: number = 0; i < keys.length; i++) {
+        const data: IData | null = await db.get(keys[i]);
 
         if (data && data.inProgress) {
             list += keys[i] + '\n';
@@ -48,12 +53,12 @@ app.get('/inprogress', async (req, res) => {
     res.status(200).send(`List of numbers still on progress:\n${list}`);
 });
 
-app.post('/input', middlewares.validate, async (req, res) => {
+app.post('/input', middlewares.validate, async (req: Request, res: Response) => {
     const { body } = req;
-    const multiplier = (body.number > MILLION) ?
+    const multiplier: number = (body.number > MILLION) ?
         Math.round(body.number / MILLION) : 0;
-    const counter = multiplier;
-    const data = {
+    const counter: number = multiplier;
+    const data: IData = {
         inProgress: true,
         number_series: 0,
         progression: [],
@@ -61,7 +66,7 @@ app.post('/input', middlewares.validate, async (req, res) => {
         counter: counter,
         ...body
     };
-    const dbRes = await db.set(data);
+    const dbRes: string | null = await db.set(data);
 
     if (dbRes) {
         queue.enqueue(data);
@@ -81,10 +86,10 @@ app.listen(port, () =>
 );
 
 (async () => {
-    const keys = await db.getAll();
+    const keys: IKeys = await db.getAll();
 
-    for (let i = 0; i < keys.length; i++) {
-        const data = await db.get(keys[i]);
+    for (let i: number = 0; i < keys.length; i++) {
+        const data: IData | null = await db.get(keys[i]);
 
         if (data && data.inProgress && data.data.start) {
             queue.enqueue(data);
@@ -92,6 +97,4 @@ app.listen(port, () =>
     }
 })();
 
-module.exports = {
-    app
-}
+export default app;

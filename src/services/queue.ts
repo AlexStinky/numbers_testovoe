@@ -1,27 +1,27 @@
-const { db } = require("./db");
+import db from './db';
+
+import { IData } from '../types/request';
 
 const MILLION = 1000000;
 
 class Queue {
-    constructor() {
-        this._oldestIndex = 1;
-        this._newestIndex = 1;
-        this._storage = {};
-    }
+    _oldestIndex: number = 1;
+    _newestIndex: number = 1;
+    _storage: Object = {};
 
-    size() {
+    size(): number {
         return this._newestIndex - this._oldestIndex;
     }
 
-    enqueue(data) {
+    enqueue(data: IData): void {
         this._storage[this._newestIndex] = data;
         this._newestIndex++;
     }
 
-    dequeue() {
-        let oldestIndex = this._oldestIndex;
-        let newestIndex = this._newestIndex;
-        let deletedData;
+    dequeue(): IData | void {
+        let oldestIndex: number = this._oldestIndex;
+        let newestIndex: number = this._newestIndex;
+        let deletedData: IData;
 
         if (oldestIndex !== newestIndex) {
             deletedData = this._storage[oldestIndex];
@@ -32,7 +32,7 @@ class Queue {
         }
     };
 
-    run() {
+    run(): void {
         for (let i = this._oldestIndex; i < this._newestIndex; i++) {
             this.calculation(this._storage[i]);
             this.dequeue();
@@ -41,26 +41,26 @@ class Queue {
         setTimeout(() => this.run(), 100);
     }
 
-    async calculation(data) {
-        const from = (data.progression.length > 0) ?
+    async calculation(data: IData): Promise<void> {
+        const from: number = (data.progression.length > 0) ?
             data.progression.length : (data.type === 4) ?
             3 : 0;
-        const to = (data.counter > 0) ?
+        const to: number = (data.counter > 0) ?
             MILLION : data.number - (MILLION * data.multiplier);
-        const start = (data.multiplier === data.counter) ?
+        const start: number = (data.multiplier === data.counter) ?
             data.data.start : data.number_series + data.data.common;
-        const common = data.data.common;
-        const j = (data.type === 4) ? 1 : 0;
+        const common: number = data.data.common;
+        const j: number = (data.type === 4) ? 1 : 0;
 
-        let a = 1;
-        let b = 1;
+        let a: number = 1;
+        let b: number = 1;
 
-        for (let i = from; i < to + j; i++) {
+        for (let i: number = from; i < to + j; i++) {
             if (i === 0) {
                 data.progression[i] = start;
             } else {
-                const length = data.progression.length;
-                const last = data.progression[length - 1];
+                const length: number = data.progression.length;
+                const last: number = data.progression[length - 1];
                 switch(data.type) {
                     case 1:
                         data.progression[i] = last + common;
@@ -71,12 +71,12 @@ class Queue {
                         data.number_series = data.progression[i];
                         break;
                     case 3:
-                        const temp_harmonic = data.number_series + common;
+                        const temp_harmonic: number = data.number_series + common;
                         data.progression[i] = 1 / temp_harmonic;
                         data.number_series = temp_harmonic;
                         break;
                     case 4:
-                        let c = a + b;
+                        let c: number = a + b;
                         a = b;
                         b = c;
                         data.number_series = b;
@@ -103,9 +103,7 @@ class Queue {
     }
 }
 
-const queue = new Queue();
+const queue: any = new Queue();
 queue.run();
 
-module.exports = {
-    queue
-}
+export default queue;
