@@ -2,7 +2,7 @@ import { createClient } from 'redis';
 
 import { IData } from '../types/request';
 
-const LIMIT: number = 4000;
+const LIMIT: number = Number(process.env.DB_LIMIT);
 
 class DBMethod {
     private db: ReturnType<typeof createClient>;

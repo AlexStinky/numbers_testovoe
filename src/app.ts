@@ -56,7 +56,7 @@ app.get('/inprogress', async (req: Request, res: Response) => {
 
 app.get('/add', async (req: Request, res: Response) => {
     setTimeout(async () => {
-        for (let i: number = 0; i < 10000; i++) {
+        for (let i: number = 0; i < 4000; i++) {
             const num = 100 + i;
             const multiplier: number = (num > MILLION) ?
                 Math.round(num / MILLION) : 0;
