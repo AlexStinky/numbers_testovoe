@@ -1,19 +1,20 @@
-import express from 'express';
 import dotenv from 'dotenv';
-
-import { Request, Response } from "express";
 
 dotenv.config();
 
-const app = express();
+import express from 'express';
+import { Request, Response } from "express";
 
 import * as middlewares from './scripts/middlewares';
+import * as worker from './scripts/worker';
+
 import db from './services/db';
-import queue from './services/queue';
 
 import { IData, IKeys } from './types/request';
 
-const MILLION = 1000000;
+const MILLION: number = 1000000;
+
+const app = express();
 
 app.set('port', process.env.PORT);
 
@@ -53,6 +54,37 @@ app.get('/inprogress', async (req: Request, res: Response) => {
     res.status(200).send(`List of numbers still on progress:\n${list}`);
 });
 
+app.get('/add', async (req: Request, res: Response) => {
+    setTimeout(async () => {
+        for (let i: number = 0; i < 10000; i++) {
+            const num = 100 + i;
+            const multiplier: number = (num > MILLION) ?
+                Math.round(num / MILLION) : 0;
+            const counter: number = multiplier;
+            await worker.addWork({
+                inProgress: true,
+                number_series: 0,
+                multiplier: multiplier,
+                counter: counter,
+                number: num,
+                type: 2,
+                data: {
+                    start: 1,
+                    common: 2
+                },
+                key: (300 + i).toString()
+            });
+        }
+    }, 100);
+
+    res.status(200).send('Numbers added');
+});
+
+app.get('/reset', async (req: Request, res: Response) => {
+    await db.reset();
+    res.status(200).send('DB reset');
+});
+
 app.post('/input', middlewares.validate, async (req: Request, res: Response) => {
     const { body } = req;
     const multiplier: number = (body.number > MILLION) ?
@@ -61,7 +93,6 @@ app.post('/input', middlewares.validate, async (req: Request, res: Response) => 
     const data: IData = {
         inProgress: true,
         number_series: 0,
-        progression: [],
         multiplier: multiplier,
         counter: counter,
         ...body
@@ -69,7 +100,7 @@ app.post('/input', middlewares.validate, async (req: Request, res: Response) => 
     const dbRes: string | null = await db.set(data);
 
     if (dbRes) {
-        queue.enqueue(data);
+        worker.addWork(data);
 
         res.status(200).send({
             ticket: dbRes
@@ -92,7 +123,7 @@ app.listen(port, () =>
         const data: IData | null = await db.get(keys[i]);
 
         if (data && data.inProgress && data.data.start) {
-            queue.enqueue(data);
+            await worker.addWork(data);
         }
     }
 })();

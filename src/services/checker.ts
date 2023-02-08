@@ -3,9 +3,11 @@ import { Schema } from "joi";
 
 import { IData } from "../types/request";
 
+const BILLION: number = 1000000000;
+
 class Checker {
     public inputSchema: Schema = Joi.object({
-        number: Joi.number().integer().min(0).required(),
+        number: Joi.number().integer().min(0).max(BILLION * 10).required(),
         type: Joi.number().required(),
         data: {
             start: Joi.number().required(),

@@ -1,7 +1,6 @@
 export type IData = {
     inProgress: boolean,
     number_series: number,
-    progression: [number] | [],
     multiplier: number,
     counter: number,
     number: number,
@@ -13,4 +12,4 @@ export type IData = {
     key: string
 };
 
-export type IKeys = [number];
+export type IKeys = [number | string];

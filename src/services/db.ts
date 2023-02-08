@@ -2,6 +2,8 @@ import { createClient } from 'redis';
 
 import { IData } from '../types/request';
 
+const LIMIT: number = 4000;
+
 class DBMethod {
     private db: ReturnType<typeof createClient>;
 
@@ -17,13 +19,18 @@ class DBMethod {
     async last(): Promise<number> {
         const keys = await this.db.keys('*');
 
+        if (keys.length > LIMIT) {
+            await this.reset();
+        }
+
         return keys.length;
     }
 
     async get(key: string): Promise<IData | null> {
         try {
             const get: string | null = await this.db.get(key);
-            const data: IData = (get) ? JSON.parse(get) : null;
+            const data: IData | null = (get) ?
+                JSON.parse(get) : null;
 
             return data;
         } catch (e) {
@@ -36,10 +43,8 @@ class DBMethod {
     }
 
     async set(data: IData): Promise<string | null> {
-        const key = (data.key) ?
-            data.key : await this.last() + 1;
-
-        data.key = key.toString();
+        data.key = (data.key) ?
+            data.key : (await this.last()).toString();
 
         try {
             const data_string: string = JSON.stringify(data);
@@ -49,6 +54,12 @@ class DBMethod {
         }
 
         return data.key;
+    }
+
+    async reset(): Promise<void> {
+        const res = await this.db.flushAll();
+
+        console.log(res)
     }
 }
 
